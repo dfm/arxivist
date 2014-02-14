@@ -1,0 +1,137 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import (division, print_function, absolute_import,
+                        unicode_literals)
+
+__all__ = []
+
+import os
+import re
+import json
+import string
+import requests
+import feedparser
+from itertools import imap
+from bs4 import BeautifulSoup
+from collections import defaultdict
+
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+from nltk import sent_tokenize, word_tokenize
+
+ARXIVIST_PATH = os.path.expanduser(os.environ.get("ARXIVIST_PATH",
+                                                  "~/.arxivist"))
+
+_res = [
+    re.compile(r"([0-9]{4}\.[0-9]{4})"),
+    re.compile(r"([a-zA-Z\-\.]+?/[0-9]+)"),
+]
+
+
+def settings_path():
+    return os.path.join(ARXIVIST_PATH, "arxivistrc.json")
+
+
+def load_settings():
+    path = settings_path()
+    if not os.path.exists(path):
+        return {
+            "nt": 0,
+            "nd": 0,
+            "tf": {},
+            "df": {},
+        }
+    return json.load(open(path, "r"))
+
+
+def save_settings(settings):
+    path = settings_path()
+    try:
+        os.makedirs(os.path.dirname(path))
+    except os.error:
+        pass
+    json.dump(settings, open(path, "w"))
+
+
+def determine_arxiv_id(indicator):
+    for r in _res:
+        results = r.findall(indicator)
+        if len(results):
+            break
+    if not len(results):
+        return None
+    return results[0]
+
+
+def parse_text(text, stemmer=PorterStemmer(),
+               stops=stopwords.words("english")):
+    words = map(stemmer.stem,
+                [w for s in imap(word_tokenize, sent_tokenize(text.lower()))
+                 for w in s if w not in stops
+                 and len(w.strip(string.punctuation))])
+
+    # Build the word count vector.
+    v = defaultdict(int)
+    for w in words:
+        v[w] += 1
+    return v
+
+
+def parse_tree(tree):
+    # Parse the entries.
+    entries = tree.find_all("entry")
+    if not len(entries):
+        raise RuntimeError("Couldn't parse entries. Contents:\n\n{0}"
+                           .format(tree))
+
+    # Loop over entries and compile word count vectors.
+    wc = []
+    for entry in entries:
+        # Parse the title and abstract.
+        title = entry.find("title")
+        abstract = entry.find("summary")
+        if abstract is None or title is None:
+            raise RuntimeError("Couldn't parse title/abstract. Contents:\n\n"
+                               "{0}".format(entry))
+        title = title.text
+        abstract = abstract.text
+        wc.append({"counts": parse_text(title + " " + abstract)})
+    return wc
+
+
+def like_article(indicator):
+    # Parse the ArXiv ID.
+    aid = determine_arxiv_id(indicator)
+    if aid is None:
+        raise RuntimeError("Couldn't parse arXiv ID from '{0}'"
+                           .format(indicator))
+
+    # Download the meta-data.
+    r = requests.get("http://export.arxiv.org/api/query",
+                     params={"id_list": aid})
+    if r.status_code != requests.codes.ok:
+        raise RuntimeError("Request to '{0}' failed with code {1}."
+                           .format(aid, r.status_code) + " Message:\n\n"
+                           + r.text)
+
+    # Parse the XML tree.
+    counts = parse_tree(BeautifulSoup(r.text))
+    if len(counts) == 0:
+        raise RuntimeError("No abstract found for '{0}'.".format(aid)
+                           + " Message:\n\n" + r.text)
+
+    # Load and update the dictionary.
+    settings = load_settings()
+    counts = counts[0]
+    settings["nd"] += 1
+    for w, c in counts["counts"].iteritems():
+        settings["nt"] += c
+        settings["tf"][w] = settings["tf"].get("w", 0) + c
+        settings["df"][w] = settings["df"].get("w", 0) + 1
+    save_settings(settings)
+
+
+if __name__ == "__main__":
+    like_article("http://arxiv.org/pdf/1202.3665v4.pdf")
+    # like_article("http://arxiv.org/pdf/1202")
