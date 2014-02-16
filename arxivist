@@ -5,16 +5,26 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
 __all__ = []
+__version__ = "0.0.1"
+__author__ = "Dan Foreman-Mackey (danfm@nyu.edu)"
+__copyright__ = "Copyright 2014 Dan Foreman-Mackey"
+__contributors__ = [
+    # Alphabetical by first name.
+]
 
 import os
 import re
+import time
 import json
 import string
+import shutil
+import logging
 import requests
-import feedparser
 from itertools import imap
 from bs4 import BeautifulSoup
 from collections import defaultdict
+from tempfile import NamedTemporaryFile
+from datetime import date, datetime, timedelta
 
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
@@ -23,17 +33,29 @@ from nltk import sent_tokenize, word_tokenize
 ARXIVIST_PATH = os.path.expanduser(os.environ.get("ARXIVIST_PATH",
                                                   "~/.arxivist"))
 
-_res = [
-    re.compile(r"([0-9]{4}\.[0-9]{4})"),
-    re.compile(r"([a-zA-Z\-\.]+?/[0-9]+)"),
-]
-
 
 def settings_path():
-    return os.path.join(ARXIVIST_PATH, "arxivistrc.json")
+    """
+    Get the path to the settings file.
+
+    """
+    return os.path.join(ARXIVIST_PATH, "arxivist.json")
+
+
+def cache_path():
+    """
+    Get the path to the cache file.
+
+    """
+    return os.path.join(ARXIVIST_PATH, "arxivist.cache")
 
 
 def load_settings():
+    """
+    Load the settings file as a dictionary or instantiate a new dictionary of
+    the correct format.
+
+    """
     path = settings_path()
     if not os.path.exists(path):
         return {
@@ -41,21 +63,55 @@ def load_settings():
             "nd": 0,
             "tf": {},
             "df": {},
+            "version": __version__,
         }
     return json.load(open(path, "r"))
 
 
-def save_settings(settings):
+def save_settings(settings, backup=True):
+    """
+    Save a dictionary atomically to the settings file as JSON.
+
+    :param settings:
+        The dictionary of settings.
+
+    :param backup:
+        If ``True``, back up any existing settings file before saving.
+
+    """
     path = settings_path()
+
+    # Make sure that the directory exists.
     try:
         os.makedirs(os.path.dirname(path))
     except os.error:
         pass
-    json.dump(settings, open(path, "w"))
+
+    # Update the version number.
+    settings["version"] = __version__
+
+    # Write the settings file atomically.
+    f = NamedTemporaryFile("w", delete=False)
+    f.write(json.dumps(settings))
+    f.flush()
+    os.fsync(f.fileno())
+    f.close()
+
+    # Backup the existing settings file and move the new one into place.
+    if backup and os.path.exists(path):
+        shutil.move(path, path + ".bkp")
+    shutil.move(f.name, path)
 
 
-def determine_arxiv_id(indicator):
-    for r in _res:
+def determine_arxiv_id(indicator,
+                       res=[re.compile(r"([0-9]{4}\.[0-9]{4})"),
+                            re.compile(r"([a-zA-Z\-\.]+?/[0-9]+)")]):
+    """
+    Determine the arXiv ID (if any) indicated by a string. This should work
+    on identifiers, URLs (abstracts or PDF), and maybe other strings.
+
+    """
+    for r in res:
         results = r.findall(indicator)
         if len(results):
             break
@@ -66,6 +122,11 @@ def determine_arxiv_id(indicator):
 
 def parse_text(text, stemmer=PorterStemmer(),
                stops=stopwords.words("english")):
+    """
+    Analyze a block of text and return the word count vector for it as a
+    dictionary.
+
+    """
     words = map(stemmer.stem,
                 [w for s in imap(word_tokenize, sent_tokenize(text.lower()))
                  for w in s if w not in stops
@@ -79,6 +140,11 @@ def parse_text(text, stemmer=PorterStemmer(),
 
 
 def parse_tree(tree):
+    """
+    Parse the Beautiful Soup'ed tree of an arXiv API query and return a list
+    of word-count vectors.
+
+    """
     # Parse the entries.
     entries = tree.find_all("entry")
     if not len(entries):
@@ -96,42 +162,146 @@ def parse_tree(tree):
                                "{0}".format(entry))
         title = title.text
         abstract = abstract.text
-        wc.append({"counts": parse_text(title + " " + abstract)})
+        wc.append(parse_text(title + " " + abstract))
     return wc
 
 
-def like_article(indicator):
+def train(indicators):
+    """
+    Train the preferences model on a list of arXiv IDs.
+
+    """
     # Parse the ArXiv ID.
-    aid = determine_arxiv_id(indicator)
-    if aid is None:
-        raise RuntimeError("Couldn't parse arXiv ID from '{0}'"
-                           .format(indicator))
+    ids = map(determine_arxiv_id, indicators)
+    if any([i is None for i in ids]):
+        raise RuntimeError("Couldn't parse arXiv ID from (at least) one of "
+                           "'{0}'".format(indicators))
 
     # Download the meta-data.
     r = requests.get("http://export.arxiv.org/api/query",
-                     params={"id_list": aid})
+                     params={"id_list": ",".join(ids)})
     if r.status_code != requests.codes.ok:
         raise RuntimeError("Request to '{0}' failed with code {1}."
-                           .format(aid, r.status_code) + " Message:\n\n"
+                           .format(ids, r.status_code) + " Message:\n\n"
                            + r.text)
 
     # Parse the XML tree.
     counts = parse_tree(BeautifulSoup(r.text))
-    if len(counts) == 0:
-        raise RuntimeError("No abstract found for '{0}'.".format(aid)
+    if len(counts) != len(ids):
+        raise RuntimeError("No abstracts found for '{0}'.".format(ids)
                            + " Message:\n\n" + r.text)
 
     # Load and update the dictionary.
     settings = load_settings()
-    counts = counts[0]
-    settings["nd"] += 1
-    for w, c in counts["counts"].iteritems():
-        settings["nt"] += c
-        settings["tf"][w] = settings["tf"].get("w", 0) + c
-        settings["df"][w] = settings["df"].get("w", 0) + 1
+    settings["nd"] += len(counts)
+    for doc in counts:
+        for w, c in doc.iteritems():
+            settings["nt"] += c
+            settings["tf"][w] = settings["tf"].get(w, 0) + c
+            settings["df"][w] = settings["df"].get(w, 0) + 1
     save_settings(settings)
 
 
+def update_cache(from_date, clobber=False, backup=True, max_tries=10,
+                 url="http://export.arxiv.org/oai2", timeout=20,
+                 date_fmt="%a, %d %b %Y %H:%M:%S %Z"):
+    # Parsing constants.
+    resume_re = re.compile(r".*<resumptionToken.*?>(.*?)</resumptionToken>.*")
+    record_tag = ".//{http://www.openarchives.org/OAI/2.0/}record"
+    format_tag = lambda t: ".//{http://arxiv.org/OAI/arXiv/}" + t
+    params = {"verb": "ListRecords", "metadataPrefix": "arXiv",
+              "from": from_date.format("%Y-%m-%d"), "setSpec": "astro-ph"}
+
+    # Loop until success.
+    failures = 0
+    listings = []
+    while True:
+        # Send the request.
+        r = requests.post(url, data=params)
+        code = r.status_code
+
+        # Asked to retry
+        if code == 503:
+            to = int(r.headers["retry-after"])
+            logging.info("Got 503. Retrying after {0:d} seconds.".format(to))
+
+            time.sleep(timeout)
+            failures += 1
+            if failures >= max_tries:
+                raise RuntimeError("OAI access failed too many times.")
+
+        elif code == 200:
+            failures = 0
+            content = r.text
+            listings.append(parse(content))
+
+            # Look for a resumption token.
+            token = resume_re.search(content)
+            if token is None:
+                break
+            token = token.groups()[0]
+
+            # If there isn't one, we're all done.
+            if token == "":
+                logging.info("All done.")
+                break
+
+            logging.info("Resumption token: {0}.".format(token))
+
+            # If there is a resumption token, rebuild the request.
+            params = {"verb": "ListRecords", "resumptionToken": token}
+
+            # Pause so as not to get banned.
+            logging.info("Sleeping for {0:d} seconds so as not to get banned."
+                         .format(to))
+            time.sleep(timeout)
+
+        else:
+            # Wha happen'?
+            r.raise_for_status()
+
+
+def list_abstracts(days):
+    settings = load_settings()
+    if settings["nd"] == 0:
+        raise RuntimeError("You need to train the model first.")
+
+    # Get the current listings (from the cache if necessary).
+    tree = fetch_listings()
+
+    # Find all of the entries in the tree that satisfy the time constraint.
+    full = False
+    entries = []
+    earliest_date = date.today() - timedelta(days=days+1, hours=-5)
+    for entry in tree.find_all("entry"):
+        updated = entry.find("updated")
+        if updated is None:
+            continue
+        print(updated.text, datetime.strptime(updated.text[:10], "%Y-%m-%d"), earliest_date)
+
+
 if __name__ == "__main__":
-    like_article("http://arxiv.org/pdf/1202.3665v4.pdf")
-    # like_article("http://arxiv.org/pdf/1202")
+    import argparse
+
+    # Set up the parsers.
+    parser = argparse.ArgumentParser(description="Machine learn the arXiv")
+    subparsers = parser.add_subparsers(help="possible actions", dest="action")
+
+    train_parser = subparsers.add_parser("train", help="train the model")
+    train_parser.add_argument("arxiv_ids",
+                              help="a comma-separated list of arXiv IDs")
+
+    list_parser = subparsers.add_parser("list", help="train the model")
+    list_parser.add_argument("-d", "--day", "--days", default=1, type=float,
+                             help="the number of past days to search")
+
+    # Parse the command line arguments.
+    args = parser.parse_args()
+
+    if args.action == "train":
+        # Train the model.
+        train(args.arxiv_ids.split(","))
+
+    elif args.action == "list":
+        # List the abstracts from the past <period> time period.
+        list_abstracts(args.day)
