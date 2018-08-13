@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         arxiv.ninja
 // @description  reorder papers on arXiv new pages
-// @version      0.1.1
+// @version      0.1.2
 // @include      https://arxiv.org/list/*/new*
+// @include      https://arxiv.org/list/*/recent*
+// @include      https://arxiv.org/list/*/pastweek*
 // @grant        none
 // ==/UserScript==
 

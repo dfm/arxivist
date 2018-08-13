@@ -2,7 +2,7 @@
 
   "manifest_version": 2,
   "name": "arxiv.ninja",
-  "version": "0.1.1",
+  "version": "0.1.2",
 
   "description": "arxiv.ninja swoops in and randomly re-orders the papers on the arXiv new pages.",
 
@@ -11,7 +11,9 @@
   "content_scripts": [
     {
       "matches": [
-        "*://arxiv.org/list/*/new*"
+        "*://arxiv.org/list/*/new*",
+        "*://arxiv.org/list/*/recent*",
+        "*://arxiv.org/list/*/pastweek*"
       ],
       "js": ["arxiv_ninja.user.js"]
     }
