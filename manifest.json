@@ -1,12 +1,17 @@
 {
 
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "arxiv.ninja",
   "version": "0.1.2",
 
   "description": "arxiv.ninja swoops in and randomly re-orders the papers on the arXiv new pages.",
 
   "homepage_url": "https://github.com/dfm/arxiv.ninja",
+
+  "permissions": [
+      "activeTab",
+      "storage"
+  ],
 
   "content_scripts": [
     {
@@ -15,7 +20,11 @@
         "*://arxiv.org/list/*/recent*",
         "*://arxiv.org/list/*/pastweek*"
       ],
-      "js": ["arxiv_ninja.user.js"]
+      "js": [
+          "stopwords.js",
+          "stemmer.js",
+          "arxiv_ninja.user.js"
+      ]
     }
   ]
 
