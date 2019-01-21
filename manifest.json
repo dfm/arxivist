@@ -1,12 +1,12 @@
 {
 
-  "manifest_version": 3,
-  "name": "arxiv.ninja",
-  "version": "0.1.2",
+  "manifest_version": 0,
+  "name": "arxivist",
+  "version": "0.0.1",
 
-  "description": "arxiv.ninja swoops in and randomly re-orders the papers on the arXiv new pages.",
+  "description": "arxivist reorders pages on arXiv.org based on your preferences",
 
-  "homepage_url": "https://github.com/dfm/arxiv.ninja",
+  "homepage_url": "https://github.com/dfm/arxivist",
 
   "permissions": [
       "activeTab",
@@ -21,9 +21,9 @@
         "*://arxiv.org/list/*/pastweek*"
       ],
       "js": [
-          "stopwords.js",
-          "stemmer.js",
-          "arxiv_ninja.user.js"
+          "src/stopwords.js",
+          "src/stemmer.js",
+          "src/arxiv_ninja.user.js"
       ]
     }
   ]
