@@ -29,7 +29,7 @@
   //  }
   //});
   storage.get(['ninja'], function(result) {
-    console.log('Value currently is: ')
+    console.log('Value ninja preferences are: ')
     console.log(result.ninja);
     if (result.ninja) {
       counter = result.ninja;
@@ -197,7 +197,6 @@
       var block = blocks[block_id];
       var divs = block.getElementsByClassName('ninja');
       var old_first_name = divs[0].childNodes[0].childNodes[0].getAttribute('name');
-      console.log(old_first_name);
       var divs_length = divs.length;
       var sortable = [];
       for (var div_id = 0; div_id < divs_length; ++div_id) {
@@ -214,6 +213,10 @@
       }
 
       // Update the blocks
+      var header = document.createElement('div');
+      header.innerHTML = '<i>sorted by arXiv.ninja</i>';
+      header.setAttribute('style', 'padding: 0 0 1em');
+      block.appendChild(header);
       for (var div_id = 0; div_id < divs_length; ++div_id) {
         block.appendChild(sortable[div_id][1]);
       }
