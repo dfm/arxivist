@@ -1,16 +1,3 @@
-// ==UserScript==
-// @name         arxiv.ninja
-// @description  reorder papers on arXiv new pages
-// @version      0.1.2
-// @include      https://arxiv.org/list/*/new*
-// @include      https://arxiv.org/list/*/recent*
-// @include      https://arxiv.org/list/*/pastweek*
-// @grant        none
-// ==/UserScript==
-
-// Original script: Iain Murray, August 2018
-// Updates to include preferences: Dan Foreman-Mackey, January 2019
-
 (function(){
 
   // Save the current state of the preferences dictionary
@@ -214,7 +201,7 @@
 
       // Update the blocks
       var header = document.createElement('div');
-      header.innerHTML = '<i>sorted by arXiv.ninja</i>';
+      header.innerHTML = '<i>sorted by arxivist</i>';
       header.setAttribute('style', 'padding: 0 0 1em');
       block.appendChild(header);
       for (var div_id = 0; div_id < divs_length; ++div_id) {
