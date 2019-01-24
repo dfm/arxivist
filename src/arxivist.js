@@ -10,9 +10,14 @@
   var executed = false;
   var arxivist_prefs = {};
   var arxivist_ids = [];
-  var storage = chrome.storage.local;
+  var store;
+  if (chrome) {
+    store = chrome.storage.local;
+  } else {
+    store = storage.local;
+  }
 
-  //storage.clear(function() {
+  //store.clear(function() {
   //  var error = chrome.runtime.lastError;
   //  if (error) {
   //    console.error(error);
@@ -57,7 +62,7 @@
     }
 
     // Save the updated results to local storage
-    storage.set({arxivist_prefs: arxivist_prefs, arxivist_ids: arxivist_ids}, function(){});
+    store.set({arxivist_prefs: arxivist_prefs, arxivist_ids: arxivist_ids}, function(){});
   };
 
   var get_word_vector_for_block = function (block) {
@@ -249,7 +254,7 @@
   // ============================================
   // Request to load the current preferences etc.
   // ============================================
-  storage.get(['arxivist_prefs', 'arxivist_ids'], function(result) {
+  store.get(['arxivist_prefs', 'arxivist_ids'], function(result) {
     console.log('current arxivist preferences are: ')
     console.log(result.arxivist_prefs);
     console.log('current arxivist ids are: ')
