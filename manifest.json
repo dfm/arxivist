@@ -18,7 +18,8 @@
       "matches": [
         "*://arxiv.org/list/*/new*",
         "*://arxiv.org/list/*/recent*",
-        "*://arxiv.org/list/*/pastweek*"
+        "*://arxiv.org/list/*/pastweek*",
+        "*://arxiv.org/abs/*"
       ],
       "js": [
           "src/stopwords.js",
