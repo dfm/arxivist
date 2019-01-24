@@ -9,4 +9,4 @@ It keeps track of the papers that you have clicked on previously and it moves th
 
 For now, you can install this by cloning the GitHub repository, navigating to [chrome://extensions](chrome://extensions), turning on "developer mode", and then loading the repository directory as an "unpacked extension".
 
-![](https://github.com/dfm/arxivist/raw/master/arxivist.png)
+![](https://github.com/dfm/arxivist/raw/master/arxivist.png?v=2)
