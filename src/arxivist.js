@@ -156,7 +156,7 @@
       var vec = word_vectors[key];
       var total = 0;
       for (var stem in word_vectors[key]) {
-        var tf_idf = vec[stem] * Math.log(nd / df[stem]);
+        var tf_idf = vec[stem] * Math.log((nd + 1) / df[stem]);
         vec[stem] = tf_idf;
         total += tf_idf * tf_idf;
       }
@@ -277,6 +277,7 @@
       // For an abstract page, update the preferences immediately
       var arxiv_id = "arXiv:" + page_url.split("/")[2];
       var word_vec = get_word_vector_for_block(document.getElementById("abs"))[0];
+      word_vec = compute_tf_idf_vectors([word_vec])[0];
       update_prefs(arxiv_id, word_vec, true);
     } else {
       // Compute the distance between the user preferences and these papers
