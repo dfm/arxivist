@@ -7,7 +7,8 @@ It keeps track of the papers that you have clicked on previously and it moves th
 
 ## Installation
 
-You can install arxivist as a [Chrome extension](https://chrome.google.com/webstore/detail/arxivist/fmnaemfbhjjgdokfgboolpjhnfcdaime) or [Firefox add-on](https://addons.mozilla.org/en-US/firefox/addon/arxivist/).
+You can install arxivist as a ~[Chrome extension](https://chrome.google.com/webstore/detail/arxivist/fmnaemfbhjjgdokfgboolpjhnfcdaime)~ or [Firefox add-on](https://addons.mozilla.org/en-US/firefox/addon/arxivist/).
+*Note: this extension has been removed from the Chrome web store because it didn't have a screenshot. I'll try to get it re-submitted, but until then, Chrome users should follow the developer instructions below.*
 
 ## Developer installation
 
