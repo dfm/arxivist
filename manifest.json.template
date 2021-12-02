@@ -1,0 +1,31 @@
+{
+  "manifest_version": {{manifest_version}},
+  "name": "arxivist",
+  "version": "0.2.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "description": "arxivist reorders pages on arXiv.org based on your preferences",
+  "homepage_url": "https://github.com/dfm/arxivist",
+  "permissions": ["storage"],
+  "{{action}}": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "24": "icons/icon24.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://arxiv.org/list/*/new*",
+        "*://arxiv.org/list/*/recent*",
+        "*://arxiv.org/list/*/pastweek*",
+        "*://arxiv.org/abs/*"
+      ],
+      "js": ["src/stopwords.js", "src/stemmer.js", "src/arxivist.js"]
+    }
+  ]
+}
