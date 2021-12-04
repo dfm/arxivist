@@ -7,12 +7,11 @@ _Note: your history is only stored in local storage on your local computer and i
 
 ## Installation
 
-You can install arxivist as a ~[Chrome extension](https://chrome.google.com/webstore/detail/arxivist/fmnaemfbhjjgdokfgboolpjhnfcdaime)~ or [Firefox add-on](https://addons.mozilla.org/en-US/firefox/addon/arxivist/).
-_Note: this extension has been removed from the Chrome web store because it didn't have a screenshot. I'll try to get it re-submitted, but until then, Chrome users should follow the developer instructions below._
+You can install arxivist as a [Chrome extension](https://chrome.google.com/webstore/detail/arxivist/fmnaemfbhjjgdokfgboolpjhnfcdaime) or [Firefox add-on](https://addons.mozilla.org/en-US/firefox/addon/arxivist/).
 
 ## Developer installation
 
-You can install the development version by:
+You can install the development version in Chrome by:
 
 1. Cloning the GitHub repository,
 2. Running `./zip_extension.sh` in the repository root, to generate a `manifest.json` file,
