@@ -179,7 +179,7 @@
     for (var block_id = 0; block_id < blocks_length; ++block_id) {
       var block = blocks[block_id];
       var divs = block.getElementsByClassName('arxivist');
-      var old_first_name = divs[0].childNodes[0].childNodes[0].getAttribute('name');
+      var old_first_name = divs[0].querySelector("a[name]").getAttribute('name');
       var divs_length = divs.length;
       var sortable = [];
       for (var div_id = 0; div_id < divs_length; ++div_id) {
