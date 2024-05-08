@@ -1,7 +1,7 @@
 {
   "manifest_version": {{manifest_version}},
   "name": "arxivist",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
